@@ -52,17 +52,12 @@ Tell the user to add `export LLMEM_API_KEY={key}` to their shell profile.
 
 ### 4. Verify Connection
 
-Test the key by running a search or remember request. Either works:
+Test the key by running a search:
 ```
 GET https://api.llmem.io/v1/mems/search?q=test&key={key}
 ```
 
-Or:
-```
-GET https://api.llmem.io/v1/mems/remember?t=test&key={key}
-```
-
-If the response returns valid JSON, the connection works. Tell the user:
+If the response returns valid JSON (even if `memories` is empty), the connection works. Tell the user:
 > "LLMem is connected. I'll automatically recall your memories at the start of every conversation and save new things you share. Your memories are encrypted end-to-end — only your key can read them."
 
 If the response returns a 401 or 403, the key is invalid. Ask the user to double-check it.
