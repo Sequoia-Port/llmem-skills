@@ -48,11 +48,11 @@ Body: {"query": "what do I know about this user"}
 ```
 
 **Response format** (JSON):
-- `"memories"` — current, reliable facts. Treat as ground truth.
-- `"faded_memories"` — older versions that were superseded. Still real but dimmer. Reference gently: "You used to..." rather than stating as current fact.
+- `"mems"` — current, reliable facts. Treat as ground truth.
+- `"_hint"` — contextual notes about the search results and what they mean.
 - `"questions_to_consider"` — proactive prompts about contradictions or evolution in the user's history. These are high-signal. Read every one.
 
-If `"memories"` is empty (`[]`), this user has no stored memories yet — proceed normally and start building them from what they share.
+If `"mems"` is empty (`[]`), this user has no stored memories yet — proceed normally and start building them from what they share.
 
 ### 2. RESPOND
 
@@ -60,21 +60,33 @@ Weave memories into your response naturally — don't list them back to the user
 
 ### 3. SAVE (after learning something new)
 
-Whenever the user shares facts about themselves — preferences, decisions, corrections, context — save them immediately.
+Whenever the user shares facts about themselves — preferences, decisions, corrections, context — save them immediately using natural language.
 
-**Via HTTP GET** (URL-encode spaces as `%20`):
+**Via HTTP GET** (recommended, URL-encode spaces as `%20`):
 
 ```
-GET {LLMEM_API_BASE}/v1/mems/save?ns=NAMESPACE&k=KEY&v=VALUE&key={LLMEM_API_KEY}
+GET {LLMEM_API_BASE}/v1/mems/remember?t=TEXT&key={LLMEM_API_KEY}
 ```
 
-Examples — copy the pattern, change the values:
-- `?ns=identity&k=full_name&v=Jane%20Smith`
-- `?ns=location&k=current_city&v=Seattle%20WA`
-- `?ns=preferences&k=editor&v=neovim`
-- `?ns=projects&k=current_project&v=building%20a%20memory%20API`
+Examples — send raw text describing what to remember:
+- `?t=User%20full%20name%20is%20Jane%20Smith`
+- `?t=User%20is%20based%20in%20Seattle%20WA`
+- `?t=User%20prefers%20Neovim%20as%20their%20editor`
+- `?t=User%20is%20building%20a%20memory%20API`
 
-**Via HTTP POST**:
+**Response** — JSON echoes what was saved:
+```json
+{
+  "status": "saved",
+  "namespace": "identity",
+  "key": "full_name",
+  "value": "Jane Smith"
+}
+```
+
+After every save, briefly confirm what was stored using the response: `"Saved: identity/full_name = Jane Smith"`
+
+**Alternative: Via HTTP POST** (structured save if you prefer explicit control):
 
 ```
 POST {LLMEM_API_BASE}/v1/mems
@@ -82,7 +94,7 @@ Headers: X-API-Key: {LLMEM_API_KEY}
 Body: {"namespace": "identity", "key": "full_name", "value": "Jane Smith"}
 ```
 
-After every save, briefly confirm: `"Saved: identity/full_name = Jane Smith"`
+The `/v1/mems/remember` endpoint is recommended because Haiku parses natural language into structured memories automatically.
 
 ## Search Strategy
 
@@ -116,16 +128,16 @@ Write memories the way you'd write a note to your future self. Not a transcript 
 
 User says "I just switched to Rust from Go"
 → SEARCH: `q=user%20preferences%20about%20programming%20languages`
-→ SAVE: `ns=preferences&k=primary_language&v=Rust (switched from Go, March 2026)`
-→ CONFIRM: "Saved: preferences/primary_language = Rust"
+→ SAVE: `t=User%20just%20switched%20to%20Rust%20from%20Go%20for%20systems%20programming`
+→ CONFIRM: "Saved: preferences/primary_language = Rust (switched from Go)"
 
 User says "actually I prefer tabs now"
 → SEARCH: `q=existing%20preference%20about%20indentation`
-→ SAVE: `ns=preferences&k=indentation&v=tabs (changed from spaces, March 2026)`
+→ SAVE: `t=User%20prefers%20tabs%20for%20indentation%20(changed%20from%20spaces)`
 → CONFIRM: "Updated: preferences/indentation = tabs"
 
 User shares their name in casual conversation
-→ SAVE: `ns=identity&k=full_name&v=Jane Smith`
+→ SAVE: `t=User%20name%20is%20Jane%20Smith`
 → CONFIRM: "Saved your name."
 
 Search returns question: "User said they dislike TypeScript, but their new project uses it"

@@ -55,7 +55,16 @@ Then reference `llmem-mcp-server` as the command instead of `npx -y @llmem/mcp-s
 
 Once registered, the MCP server exposes these tools:
 
-### `search_memories`
+### `remember` (recommended)
+
+Save information using natural language. Haiku automatically parses raw text into structured memories.
+
+**Parameters:**
+- `text` (string, required): Natural language description of what to remember. Example: "User switched from Neovim to VS Code"
+
+**Returns:** JSON with `status` (saved/updated), `namespace`, `key`, and `value` echo fields.
+
+### `recall_memories`
 
 Search the user's memory store. Call this at the start of every conversation and whenever the topic changes.
 
@@ -64,11 +73,11 @@ Search the user's memory store. Call this at the start of every conversation and
 - `namespace` (string, optional): Filter to a specific namespace like "preferences" or "projects"
 - `limit` (number, optional): Max results to return. Default: 20
 
-**Returns:** JSON with `memories`, `faded_memories`, and `questions_to_consider` arrays.
+**Returns:** JSON with `mems` array, `_hint` (contextual notes), and `questions_to_consider` (contradictions/patterns).
 
-### `save_memory`
+### `save_memory` (structured saves)
 
-Save a new fact about the user. Call this whenever the user shares preferences, decisions, corrections, or personal context.
+Save a new fact with explicit structure. Use when you need fine-grained control over namespace, key, and value.
 
 **Parameters:**
 - `namespace` (string, required): Category — identity, preferences, work, projects, interests, health, family, goals, opinions, location, style
@@ -81,13 +90,14 @@ Save a new fact about the user. Call this whenever the user shares preferences, 
 
 The same rules from the `llmem-memory` skill apply:
 
-1. **Search before every response** — recall the user's context first.
+1. **Search before every response** — recall the user's context first using `recall_memories`.
 2. **Weave memories naturally** — don't list them back to the user.
-3. **Save proactively** — when the user shares something about themselves, save it.
-4. **Confirm saves** — briefly tell the user what was stored: "Saved: preferences/editor = neovim"
+3. **Save proactively** — when the user shares something about themselves, use `remember` with natural language.
+4. **Confirm saves** — briefly tell the user what was stored using the response: "Saved: preferences/editor = neovim"
 5. **Surface contradictions** — if `questions_to_consider` highlights an evolution, ask about it.
 6. **Prefer recent memories** — when old and new conflict, the new one wins.
 7. **Never store the API key** — it's in the environment, not in memory.
+8. **Use `remember` for most saves** — it handles parsing automatically. Use `save_memory` only when you need explicit control.
 
 ## Environment Variables
 
